@@ -1,0 +1,25 @@
+pkgbase = focusoro-bin
+	pkgdesc = Pomodoro sessions, focus tracking and goals in your terminal
+	pkgver = @VERSION@
+	pkgrel = 1
+	url = https://focusoro.com
+	arch = x86_64
+	arch = aarch64
+	license = LicenseRef-Focusoro
+	depends = glibc
+	optdepends = libnotify: desktop notifications
+	optdepends = xdg-utils: open the HTML report and the exports folder
+	provides = focusoro
+	conflicts = focusoro
+	options = !strip
+	options = !debug
+	source = LICENSE-@VERSION@::https://raw.githubusercontent.com/orocore/focusoro/v@VERSION@/LICENSE
+	source = THIRD-PARTY-NOTICES-@VERSION@::https://raw.githubusercontent.com/orocore/focusoro/v@VERSION@/THIRD-PARTY-NOTICES
+	sha256sums = @SHA_LICENSE@
+	sha256sums = @SHA_NOTICES@
+	source_x86_64 = focusoro-@VERSION@-x86_64::https://github.com/orocore/focusoro/releases/download/v@VERSION@/focusoro-linux-x86_64
+	sha256sums_x86_64 = @SHA_X86_64@
+	source_aarch64 = focusoro-@VERSION@-aarch64::https://github.com/orocore/focusoro/releases/download/v@VERSION@/focusoro-linux-arm64
+	sha256sums_aarch64 = @SHA_AARCH64@
+
+pkgname = focusoro-bin

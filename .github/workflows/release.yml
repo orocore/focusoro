@@ -1,0 +1,364 @@
+name: Release
+
+# Publishes a Focusoro version from this public repository (public repos get
+# free GitHub Actions minutes on every OS). The source code stays private: the
+# build checks it out with a read-only token.
+#
+# Run it from the Actions tab ("Run workflow") with the version to publish,
+# after tagging that version (v1.1.0) in the private source repository.
+#
+# Secrets:
+#   SOURCE_REPO   owner/name of the private source repository (required; a
+#                 secret so it never shows in this public repo or its logs)
+#   SOURCE_TOKEN  fine-grained token with read access to the private source
+#                 repo's contents (required)
+#   TAP_TOKEN     token with write access to orocore/homebrew-tap (optional:
+#                 without it the Homebrew formula is not updated)
+#   AUR_SSH_KEY   private SSH key of the AUR account (optional: without it the
+#                 AUR package is not updated)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, without the v (e.g. 1.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  VERSION: ${{ inputs.version }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # Ubuntu 22.04: an older glibc, so the binary runs on newer distros.
+          - os: ubuntu-22.04
+            raw_path: build/focusoro
+            asset_name: focusoro-linux-x86_64
+          - os: ubuntu-22.04-arm
+            raw_path: build/focusoro
+            asset_name: focusoro-linux-arm64
+          - os: macos-15-intel
+            raw_path: build/focusoro
+            asset_name: focusoro-macos-x86_64
+          - os: macos-latest
+            raw_path: build/focusoro
+            asset_name: focusoro-macos-arm64
+          - os: windows-latest
+            raw_path: build/Release/focusoro.exe
+            asset_name: focusoro-windows-x86_64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out the source (private repository)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ secrets.SOURCE_REPO }}
+          ref: v${{ inputs.version }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+
+      # Configure, build and test quietly. This repository and its logs are
+      # public and the source is not, so the full output goes to a file on
+      # the temporary runner (never uploaded) and the log only says whether it
+      # worked and how many tests passed. A failure is reproduced locally.
+      - name: Configure (release, portable runtime, with tests)
+        shell: bash
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DFOCUSORO_PORTABLE=ON \
+            -DFOCUSORO_BUILD_TESTS=ON > "$RUNNER_TEMP/configure.log" 2>&1 \
+            || { echo "::error::Configure failed (details stay private)"; exit 1; }
+          echo "Configured."
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake --build build --config Release --parallel > "$RUNNER_TEMP/build.log" 2>&1 \
+            || { echo "::error::Build failed (details stay private)"; exit 1; }
+          echo "Built."
+
+      - name: Test
+        shell: bash
+        run: |
+          if ctest --test-dir build -C Release > "$RUNNER_TEMP/test.log" 2>&1; then
+            grep -E "tests passed" "$RUNNER_TEMP/test.log"
+          else
+            # Only the count ("98% tests passed, 2 tests failed out of 506"),
+            # without test names or lines.
+            grep -E "tests (passed|failed)" "$RUNNER_TEMP/test.log" || true
+            echo "::error::Tests failed (details stay private)"
+            exit 1
+          fi
+
+      # On a failure, the full logs are encrypted to a key only the maintainer
+      # holds and attached to the run: anyone can download them, nobody else
+      # can read them.
+      - name: Encrypt the logs (only on failure)
+        if: failure()
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/key.asc" <<'KEY'
+          -----BEGIN PGP PUBLIC KEY BLOCK-----
+          
+          mDMEatyXFxYJKwYBBAHaRw8BAQdAx4EIGLS2qcdLJ0l6NvJVa2BQN7qDLlgWaiBf
+          DbVnuMC0LEZvY3Vzb3JvIHJlbGVhc2UgbG9ncyA8bm9yZXBseUBmb2N1c29yby5j
+          b20+iJAEExYKADgWIQQ1IQ+qwB2c7J05ErVnHkeaydCIUgUCatyXFwIbAwULCQgH
+          AgYVCgkICwIEFgIDAQIeAQIXgAAKCRBnHkeaydCIUmgVAQCKprcmWNMZzSO2WQxR
+          hU6rCVZzlNDs/ffx+MS34QKrsQD/fsBHUBoljLXqvt/QVy3aa78uP5l1ktwQJwEO
+          UZG0Vwu4OARq3JcXEgorBgEEAZdVAQUBAQdAegqLSbeJ2YghtKu21Pj5MNjYOFgA
+          dDiARcn21Y1FsVEDAQgHiHgEGBYKACAWIQQ1IQ+qwB2c7J05ErVnHkeaydCIUgUC
+          atyXFwIbDAAKCRBnHkeaydCIUlUaAP4qaIjhSTe5UItTegD8PUSwhzX6CONzDHBu
+          LGw7pr9WvQD+PEvtdOqH3t//4a9PkzWPJyJ/yARMlnXMAM3zDToWfAk=
+          =7KHc
+          -----END PGP PUBLIC KEY BLOCK-----
+          KEY
+          # Windows: RUNNER_TEMP is D:\a\_temp, which Git Bash's gpg reads as a
+          # relative path; cygpath gives it the /d/a/_temp form.
+          T=$(cygpath -u "$RUNNER_TEMP" 2>/dev/null || echo "$RUNNER_TEMP")
+          mkdir -p "$T/gpg" && chmod 700 "$T/gpg"
+          gpg --batch --quiet --homedir "$T/gpg" --import "$T/key.asc"
+          cd "$T"
+          tar -czf logs.tgz $(ls configure.log build.log test.log 2>/dev/null)
+          gpg --batch --quiet --homedir "$T/gpg" --trust-model always \
+            --recipient noreply@focusoro.com --output logs.tgz.gpg --encrypt logs.tgz
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: logs-${{ matrix.asset_name }}
+          path: ${{ runner.temp }}/logs.tgz.gpg
+          retention-days: 7
+
+      - name: Check the version and strip
+        shell: bash
+        run: |
+          "${{ matrix.raw_path }}" --version | grep -F "$VERSION"
+          if [ "${{ runner.os }}" != "Windows" ]; then strip "${{ matrix.raw_path }}"; fi
+          cp "${{ matrix.raw_path }}" "${{ matrix.asset_name }}"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  checksums:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: assets
+          merge-multiple: true
+      - run: cd assets && sha256sum focusoro-* > sha256sums.txt && cat sha256sums.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          path: assets
+
+  # The installers people will run, against the binaries just built, on every
+  # OS, before anything is published.
+  test-installers:
+    needs: checksums
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: assets
+      - name: Serve the assets locally
+        shell: bash
+        run: |
+          cd assets
+          PY=$(command -v python3 || command -v python)
+          "$PY" -m http.server 8765 >/dev/null 2>&1 &
+          sleep 2
+      - name: install.sh
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          FOCUSORO_DOWNLOAD_BASE: http://127.0.0.1:8765
+        run: |
+          sh docs/install.sh
+          "$HOME/.local/bin/focusoro" --version | grep -F "$VERSION"
+          sh docs/install.sh --uninstall
+          test ! -e "$HOME/.local/bin/focusoro"
+      - name: install.ps1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          FOCUSORO_DOWNLOAD_BASE: http://127.0.0.1:8765
+        run: |
+          ./docs/install.ps1
+          $out = & "$env:LOCALAPPDATA\Programs\Focusoro\focusoro.exe" --version
+          if ($out -notmatch [regex]::Escape($env:VERSION)) { throw "unexpected version: $out" }
+          ./docs/install.ps1 -Uninstall
+          if (Test-Path "$env:LOCALAPPDATA\Programs\Focusoro\focusoro.exe") { throw 'not uninstalled' }
+
+  publish:
+    needs: test-installers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: assets
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: v${{ inputs.version }}
+          name: Focusoro ${{ inputs.version }}
+          files: assets/*
+          body: |
+            ## Install
+
+            **Linux / macOS**
+            ```sh
+            curl -fsSL https://focusoro.com/install.sh | sh
+            ```
+
+            **Windows (PowerShell)**
+            ```powershell
+            irm https://focusoro.com/install.ps1 | iex
+            ```
+
+            **Homebrew** `brew install orocore/tap/focusoro` ·
+            **Scoop** `scoop bucket add focusoro https://github.com/orocore/focusoro; scoop install focusoro`
+
+            Then open a new terminal and type `focusoro`. See https://focusoro.com for details.
+
+  update-packages:
+    needs: publish
+    runs-on: ubuntu-latest
+    env:
+      # The optional steps run only if their secret exists (a step's 'if'
+      # cannot read secrets directly).
+      HAS_TAP_TOKEN: ${{ secrets.TAP_TOKEN != '' }}
+      HAS_AUR_KEY: ${{ secrets.AUR_SSH_KEY != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: assets
+      - name: Read the checksums
+        id: sums
+        run: |
+          for name in linux-x86_64 linux-arm64 macos-x86_64 macos-arm64 windows-x86_64.exe; do
+            key=$(echo "$name" | tr '.-' '__')
+            echo "$key=$(grep " focusoro-$name\$" assets/sha256sums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Scoop manifest (this repository)
+        env:
+          WIN_SHA: ${{ steps.sums.outputs.windows_x86_64_exe }}
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          path = "bucket/focusoro.json"
+          manifest = json.load(open(path))
+          version = os.environ["VERSION"]
+          manifest["version"] = version
+          manifest["architecture"]["64bit"]["url"] = (
+              f"https://github.com/orocore/focusoro/releases/download/v{version}/"
+              "focusoro-windows-x86_64.exe#/focusoro.exe")
+          manifest["architecture"]["64bit"]["hash"] = os.environ["WIN_SHA"]
+          json.dump(manifest, open(path, "w"), indent=4)
+          open(path, "a").write("\n")
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bucket/focusoro.json
+          git commit -m "Scoop: Focusoro $VERSION" || echo "No changes"
+          git push
+
+      - name: Homebrew formula (orocore/homebrew-tap)
+        if: env.HAS_TAP_TOKEN == 'true'
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+          MAC_ARM: ${{ steps.sums.outputs.macos_arm64 }}
+          MAC_X86: ${{ steps.sums.outputs.macos_x86_64 }}
+          LINUX_ARM: ${{ steps.sums.outputs.linux_arm64 }}
+          LINUX_X86: ${{ steps.sums.outputs.linux_x86_64 }}
+        run: |
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/orocore/homebrew-tap.git" tap
+          url="https://github.com/orocore/focusoro/releases/download/v$VERSION"
+          cat > tap/Formula/focusoro.rb <<EOF
+          class Focusoro < Formula
+            desc "Pomodoro sessions, focus tracking and goals in your terminal"
+            homepage "https://focusoro.com"
+            version "$VERSION"
+            license :cannot_represent
+
+            on_macos do
+              on_arm do
+                url "$url/focusoro-macos-arm64"
+                sha256 "$MAC_ARM"
+              end
+              on_intel do
+                url "$url/focusoro-macos-x86_64"
+                sha256 "$MAC_X86"
+              end
+            end
+            on_linux do
+              on_arm do
+                url "$url/focusoro-linux-arm64"
+                sha256 "$LINUX_ARM"
+              end
+              on_intel do
+                url "$url/focusoro-linux-x86_64"
+                sha256 "$LINUX_X86"
+              end
+            end
+
+            def install
+              bin.install Dir["focusoro-*"].first => "focusoro"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/focusoro --version")
+            end
+          end
+          EOF
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/focusoro.rb
+          git commit -m "focusoro $VERSION" || echo "No changes"
+          git push
+
+      - name: AUR package (focusoro-bin)
+        if: env.HAS_AUR_KEY == 'true'
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          LINUX_ARM: ${{ steps.sums.outputs.linux_arm64 }}
+          LINUX_X86: ${{ steps.sums.outputs.linux_x86_64 }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$AUR_SSH_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
+          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur"
+          git clone ssh://aur@aur.archlinux.org/focusoro-bin.git aur
+          SHA_LICENSE=$(sha256sum LICENSE | cut -d' ' -f1)
+          SHA_NOTICES=$(sha256sum THIRD-PARTY-NOTICES | cut -d' ' -f1)
+          for template in PKGBUILD SRCINFO; do
+            sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHA_X86_64@/$LINUX_X86/g" \
+                -e "s/@SHA_AARCH64@/$LINUX_ARM/g" -e "s/@SHA_LICENSE@/$SHA_LICENSE/g" \
+                -e "s/@SHA_NOTICES@/$SHA_NOTICES/g" "packaging/aur/$template.in" \
+                > "aur/$( [ "$template" = SRCINFO ] && echo .SRCINFO || echo PKGBUILD )"
+          done
+          cd aur
+          git config user.name "Focusoro"
+          git config user.email "noreply@focusoro.com"
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to $VERSION" || echo "No changes"
+          git push

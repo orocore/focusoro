@@ -1,0 +1,74 @@
+name: Check
+
+# Builds and tests a version with the full logs, to find out why a release
+# build fails. It only runs while this repository is private: the logs show
+# the source's file names and test details.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag or commit of the source to build (e.g. v1.0.0)"
+        required: true
+        default: "v1.0.0"
+      os:
+        description: "Where to build"
+        type: choice
+        options: [windows-latest, macos-latest, macos-15-intel, ubuntu-22.04, ubuntu-22.04-arm]
+        default: windows-latest
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event.repository.private
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Check out the source (private repository)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ secrets.SOURCE_REPO }}
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.SOURCE_TOKEN }}
+          persist-credentials: false
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DFOCUSORO_PORTABLE=ON -DFOCUSORO_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Try the log encryption (same script as the release)
+        if: always()
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/key.asc" <<'KEY'
+          -----BEGIN PGP PUBLIC KEY BLOCK-----
+          
+          mDMEatyXFxYJKwYBBAHaRw8BAQdAx4EIGLS2qcdLJ0l6NvJVa2BQN7qDLlgWaiBf
+          DbVnuMC0LEZvY3Vzb3JvIHJlbGVhc2UgbG9ncyA8bm9yZXBseUBmb2N1c29yby5j
+          b20+iJAEExYKADgWIQQ1IQ+qwB2c7J05ErVnHkeaydCIUgUCatyXFwIbAwULCQgH
+          AgYVCgkICwIEFgIDAQIeAQIXgAAKCRBnHkeaydCIUmgVAQCKprcmWNMZzSO2WQxR
+          hU6rCVZzlNDs/ffx+MS34QKrsQD/fsBHUBoljLXqvt/QVy3aa78uP5l1ktwQJwEO
+          UZG0Vwu4OARq3JcXEgorBgEEAZdVAQUBAQdAegqLSbeJ2YghtKu21Pj5MNjYOFgA
+          dDiARcn21Y1FsVEDAQgHiHgEGBYKACAWIQQ1IQ+qwB2c7J05ErVnHkeaydCIUgUC
+          atyXFwIbDAAKCRBnHkeaydCIUlUaAP4qaIjhSTe5UItTegD8PUSwhzX6CONzDHBu
+          LGw7pr9WvQD+PEvtdOqH3t//4a9PkzWPJyJ/yARMlnXMAM3zDToWfAk=
+          =7KHc
+          -----END PGP PUBLIC KEY BLOCK-----
+          KEY
+          # Windows: RUNNER_TEMP is D:\a\_temp, which Git Bash's gpg reads as a
+          # relative path; cygpath gives it the /d/a/_temp form.
+          T=$(cygpath -u "$RUNNER_TEMP" 2>/dev/null || echo "$RUNNER_TEMP")
+          mkdir -p "$T/gpg" && chmod 700 "$T/gpg"
+          gpg --batch --verbose --homedir "$T/gpg" --import "$T/key.asc"
+          cd "$T"
+          echo "sample" > build.log
+          gpg --version | head -1
+          tar -czf logs.tgz $(ls configure.log build.log test.log 2>/dev/null)
+          gpg --batch --verbose --homedir "$T/gpg" --trust-model always \
+            --recipient noreply@focusoro.com --output logs.tgz.gpg --encrypt logs.tgz
+          ls -l logs.tgz.gpg

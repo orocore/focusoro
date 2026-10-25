@@ -1,0 +1,38 @@
+Focusoro License
+
+Copyright (c) 2026 Focusoro. All rights reserved.
+
+Focusoro is free to download and use, at no cost, for personal, study or
+work purposes.
+
+You may:
+
+  - install and use Focusoro on any number of your own devices;
+  - use it for any purpose, including your work.
+
+You may not:
+
+  - sell, rent, lease or sublicense Focusoro;
+  - redistribute it, in whole or in part, except through its official
+    channels: focusoro.com, the releases at github.com/orocore/focusoro, and
+    the package managers that install from them;
+  - modify, reverse engineer, decompile or disassemble it, except where the
+    law expressly allows it despite this limitation;
+  - remove or change this notice.
+
+Your data is yours. Focusoro keeps everything it records as files on your
+computer and does not collect or send any of it anywhere.
+
+FOCUSORO IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH FOCUSORO OR THE USE OR OTHER DEALINGS IN IT.
+
+Future versions may come with different terms; the version you received
+keeps the terms it came with.
+
+Focusoro is built with FTXUI (MIT License, Copyright (c) 2019 Arthur
+Sonzogni) and nlohmann/json (MIT License, Copyright (c) 2013-2022 Niels
+Lohmann). Their licenses are in THIRD-PARTY-NOTICES.

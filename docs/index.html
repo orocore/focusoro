@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focusoro · Pomodoro timer and focus tracker for the terminal</title>
+<meta name="description" content="A free Pomodoro timer for the terminal (TUI) that tracks your focus by topic, with daily goals, tasks, notes and a progress report. For macOS, Linux and Windows.">
+<link rel="canonical" href="https://focusoro.com/">
+<meta name="theme-color" content="#12131b">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Focusoro">
+<meta property="og:title" content="Focusoro · Pomodoro timer and focus tracker for the terminal">
+<meta property="og:description" content="A free Pomodoro timer for the terminal that tracks your focus by topic, with daily goals, tasks, notes and a progress report.">
+<meta property="og:url" content="https://focusoro.com/">
+<meta property="og:image" content="https://focusoro.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Focusoro logo and the words Where focus becomes progress, next to the app running in a terminal.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Focusoro · Pomodoro timer and focus tracker for the terminal">
+<meta name="twitter:description" content="A free Pomodoro timer for the terminal that tracks your focus by topic, with daily goals, tasks, notes and a progress report.">
+<meta name="twitter:image" content="https://focusoro.com/og.png">
+<meta name="twitter:image:alt" content="The Focusoro logo and the words Where focus becomes progress, next to the app running in a terminal.">
+<!-- What the app is, for search engines (schema.org). -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Focusoro",
+  "description": "A free Pomodoro timer for the terminal that tracks your focus by topic, with daily goals, tasks, notes and a progress report.",
+  "url": "https://focusoro.com/",
+  "image": "https://focusoro.com/og.png",
+  "applicationCategory": "UtilitiesApplication",
+  "applicationSubCategory": "Pomodoro timer",
+  "operatingSystem": "macOS, Linux, Windows",
+  "softwareVersion": "1.0.0",
+  "downloadUrl": "https://github.com/orocore/focusoro/releases/latest",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Organization", "name": "Orocore", "url": "https://github.com/orocore", "email": "info@focusoro.com" }
+}
+</script>
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicon-192.png" sizes="192x192">
+<link rel="icon" type="image/svg+xml" href="mark.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/JetBrainsMono.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* JetBrains Mono: SIL Open Font License 1.1 (fonts/JetBrainsMono-OFL.txt),
+   the font of the screenshots. Served from this site, with no third-party
+   fonts or resources. */
+@font-face {
+  font-family: "JetBrains Mono"; src: url(fonts/JetBrainsMono.woff2) format("woff2");
+  font-weight: 100 800; font-display: swap;
+}
+:root {
+  --bg: #12131b; --bg-2: #161722; --surface: #1b1d29; --surface-2: #232636;
+  --line: #2e3248; --line-2: #3b4060;
+  --text: #e6e9f5; --muted: #9ba1bd; --dim: #6b718e;
+  --gold: #f2c14e; --gold-deep: #c8901c; --ice: #e6e9f5;
+  --green: #9ece6a; --blue: #7aa2f7;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --px: 3px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+html, body { margin: 0; }
+/* The hero grid reaches 200 px past each side. Without this, screens under
+   ~1520 px could scroll sideways. It is on body too, because on html alone
+   it reaches the viewport as "hidden", which can still be scrolled. clip
+   does not create a scroll container. */
+html, body { overflow-x: clip; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--gold); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+img { max-width: 100%; height: auto; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+/* Headings in the system sans, buttons, tabs and labels in the app's mono.
+   Pixels are kept for the logo and the icons. */
+h1, h2, h3 { font-weight: 700; letter-spacing: -.025em; }
+.eyebrow, .tabs button, .btn, nav .links a, .cmd button, .theme figcaption { font-family: var(--mono); }
+.pixelated { image-rendering: pixelated; }
+
+/* Pixel border. Four hard shadows step the corners like a sprite, and with
+   --drop a hard shadow without blur is added. */
+.px {
+  --b: var(--line);
+  box-shadow: 0 calc(-1 * var(--px)) 0 0 var(--b), 0 var(--px) 0 0 var(--b),
+              calc(-1 * var(--px)) 0 0 0 var(--b), var(--px) 0 0 0 var(--b);
+  margin: var(--px);
+}
+.px.drop {
+  box-shadow: 0 calc(-1 * var(--px)) 0 0 var(--b), 0 var(--px) 0 0 var(--b),
+              calc(-1 * var(--px)) 0 0 0 var(--b), var(--px) 0 0 0 var(--b),
+              calc(2 * var(--px)) calc(3 * var(--px)) 0 0 rgba(0, 0, 0, .45);
+}
+
+/* Navigation */
+nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; gap: 16px; }
+.brand img { display: block; height: 44px; width: auto; }
+nav .links { display: flex; align-items: center; gap: 26px; }
+nav .links a { color: var(--muted); text-decoration: none; font-size: 14.5px; }
+nav .links a:hover { color: var(--text); }
+
+/* Botones */
+.btn {
+  display: inline-block; font-size: 15px; font-weight: 700; text-decoration: none; cursor: pointer;
+  padding: 9px 20px; border: 0; color: #191307; background: var(--gold);
+  --b: #7a5810;
+  transition: transform .08s ease;
+}
+.btn:hover { background: #f6cd68; }
+.btn:active { transform: translateY(2px); }
+.btn.ghost { color: var(--text); background: var(--surface-2); --b: var(--line-2); }
+.btn.ghost:hover { background: #2a2e42; }
+nav .links a.btn { font-size: 14px; padding: 6px 16px; color: #191307; }
+
+/* Hero */
+.hero { position: relative; text-align: center; padding: 64px 0 24px; }
+.hero::before {
+  /* A faint pixel grid behind the title. */
+  content: ""; position: absolute; inset: -40px -200px 0; z-index: -1; pointer-events: none;
+  background-image: linear-gradient(var(--bg-2) 2px, transparent 2px), linear-gradient(90deg, var(--bg-2) 2px, transparent 2px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, transparent 65%);
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, transparent 65%);
+}
+.eyebrow { display: inline-flex; gap: 10px; align-items: center; color: var(--gold); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 22px; }
+.eyebrow .tag { color: var(--muted); background: var(--surface); padding: 2px 10px; --b: var(--line); }
+/* Section label, stronger than the hero's, with a gold pixel on each side
+   like the hourglass sand. */
+.section-label { display: inline-flex; align-items: center; gap: 14px; color: var(--gold); font: 700 15px var(--mono); letter-spacing: .16em; text-transform: uppercase; }
+.section-label::before, .section-label::after { content: ""; width: 8px; height: 8px; background: var(--gold); box-shadow: 2px 2px 0 var(--gold-deep); }
+.hero h1 { font-size: clamp(40px, 7.4vw, 76px); line-height: 1.04; margin: 0 0 22px; letter-spacing: -.04em; }
+.hero h1 span { color: var(--gold); }
+.hero .lead { color: var(--muted); font-size: clamp(17px, 2.2vw, 20px); max-width: 640px; margin: 0 auto 34px; }
+
+/* Install */
+.install { background: var(--surface); padding: 20px; max-width: 760px; margin: 0 auto; text-align: left; --b: var(--line); }
+.tabs { display: flex; gap: 10px; margin: 0 0 14px; flex-wrap: wrap; }
+.tabs button {
+  border: 0; background: transparent; color: var(--muted); font-size: 14.5px; font-weight: 600;
+  padding: 5px 14px; cursor: pointer; margin: var(--px);
+}
+.tabs button:hover { color: var(--text); }
+.tabs button.active { background: var(--surface-2); color: var(--text); box-shadow: 0 calc(-1 * var(--px)) 0 0 var(--line-2), 0 var(--px) 0 0 var(--line-2), calc(-1 * var(--px)) 0 0 0 var(--line-2), var(--px) 0 0 0 var(--line-2); }
+.panel { display: none; }
+.panel.active { display: block; }
+.panel p { color: var(--muted); font-size: 15px; margin: 8px 2px; }
+.cmd { display: flex; align-items: center; gap: 10px; background: #0d0e14; padding: 11px 11px 11px 16px; margin: 8px var(--px) 12px; --b: #262a3c; }
+.cmd code { flex: 1; min-width: 0; font: 15px/1.45 var(--mono); color: var(--green); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.cmd code::-webkit-scrollbar { display: none; }
+.cmd code::before { content: "$ "; color: var(--dim); }
+.cmd.ps code::before { content: "> "; }
+.cmd button { flex: none; border: 0; background: var(--surface-2); color: var(--text); padding: 4px 12px; font-size: 13px; font-weight: 600; cursor: pointer; margin: var(--px); --b: var(--line-2); }
+.cmd button:hover { background: #2a2e42; }
+.then { margin: 6px 2px 0; color: var(--muted); font-size: 15px; }
+kbd, .then code { font: 14px var(--mono); color: var(--text); background: var(--surface-2); padding: 1px 6px; }
+.terminals { color: var(--dim); font-size: 14px; margin: 18px auto 0; max-width: 760px; }
+
+/* Window with the capture */
+.window { background: #1a1b26; margin: 56px auto 0; max-width: 1040px; --b: var(--line-2); }
+.window .bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #15161f; border-bottom: 2px solid #0f1017; }
+.window .bar i { width: 10px; height: 10px; background: #3b4261; display: block; }
+.window .bar span { margin-left: 10px; font: 13px var(--mono); color: var(--dim); }
+.window img, .window video, .shot .frame video { display: block; width: 100%; height: auto; }
+.window video[hidden] { display: none; }
+/* With the video (portrait, 1062x1232) the window narrows so that, with its
+   40 px bar, it takes 80% of the screen height and leaves room above and
+   below. Never under 600 px wide, where the terminal text stops being
+   readable (on short screens a little scrolling is better). */
+.window.playing { max-width: min(1040px, max(600px, calc((80vh - 40px) * 1062 / 1232))); }
+.caption { text-align: center; color: var(--dim); font-size: 14px; margin: 18px 0 0; }
+
+section { padding: 100px 0 0; }
+.section-head { text-align: center; max-width: 680px; margin: 0 auto 44px; }
+.section-head h2 { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.1; margin: 10px 0 12px; }
+.section-head p { color: var(--muted); font-size: 18px; margin: 0; }
+
+/* Pilares */
+.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; text-align: center; }
+.pillars img { width: 60px; height: 60px; display: block; margin: 0 auto 14px; }
+.pillars h2 { margin: 0 0 6px; font-size: 28px; color: var(--gold); }
+.pillars p { margin: 0 auto; color: var(--muted); max-width: 30ch; }
+
+/* Gallery */
+.gallery .tabs { justify-content: center; margin-bottom: 26px; }
+.shot { display: none; }
+.shot.active { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: center; }
+.shot .frame { background: #1a1b26; --b: var(--line-2); width: calc(100% - 2 * var(--px)); }
+.shot .frame img { display: block; width: 100%; }
+.shot h3 { font-size: 26px; line-height: 1.2; margin: 0 0 12px; }
+.shot p { color: var(--muted); margin: 0 0 12px; }
+.shot .keys { color: var(--dim); font-size: 14px; }
+
+/* Funciones */
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.feature { background: var(--surface); padding: 24px; --b: var(--line); }
+.feature img { width: 36px; height: 36px; display: block; margin-bottom: 14px; }
+.feature h3 { margin: 0 0 6px; font-size: 18px; }
+.feature p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* Temas */
+.themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px; }
+.theme figure { margin: 0; }
+.theme .frame { --b: var(--line-2); }
+.theme img { display: block; width: 100%; }
+.theme figcaption { font-size: 14px; color: var(--muted); margin-top: 12px; text-align: center; }
+
+/* Cierre */
+.cta { text-align: center; background: var(--surface); padding: 56px 24px; --b: var(--line); position: relative; overflow: hidden; }
+.cta img { width: 54px; height: 72px; display: block; margin: 0 auto 18px; }
+.cta h2 { font-size: clamp(30px, 4.4vw, 44px); margin: 0 0 10px; }
+.cta p { color: var(--muted); margin: 0 0 28px; font-size: 18px; }
+.cta .actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 40px 0 48px; margin-top: 90px; border-top: 2px solid var(--line); color: var(--dim); font-size: 14px; }
+footer .left { display: flex; align-items: center; gap: 12px; }
+footer img { width: 18px; height: 24px; }
+footer a { color: var(--muted); text-decoration: none; }
+footer a:hover { color: var(--text); }
+footer nav { padding: 0; display: flex; gap: 20px; }
+
+@media (max-width: 900px) {
+  .shot.active { grid-template-columns: 1fr; gap: 22px; }
+  .features { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  nav .links a:not(.btn) { display: none; }
+  .hero { padding-top: 40px; }
+  .eyebrow { flex-wrap: wrap; justify-content: center; }
+  .install { padding: 14px; }
+  .cmd code { font-size: 13px; }
+  .window { margin-top: 40px; }
+  .window .bar span { display: none; }
+  section { padding-top: 76px; }
+  .pillars, .features, .themes { grid-template-columns: 1fr; }
+  .gallery .tabs { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 22px; padding: 0 16px 6px; scrollbar-width: none; }
+  .gallery .tabs button { flex: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#"><img src="logo.svg" alt="Focusoro" width="198" height="44"></a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#tour">Tour</a>
+      <a href="https://github.com/orocore/focusoro/releases">Releases</a>
+      <a class="btn px" href="#install">Install</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="install">
+    <div class="eyebrow"><span class="tag px">v1.0.0</span> Free terminal app (TUI) for macOS, Linux and Windows</div>
+    <h1>Where focus<br><span>becomes progress.</span></h1>
+    <p class="lead">A Pomodoro timer for your terminal that keeps track of what you work on, with daily goals, tasks, notes and a calendar next to the clock.</p>
+
+    <div class="install px drop">
+      <div class="tabs" role="tablist" aria-label="Your system">
+        <button role="tab" data-os="mac" class="active">macOS</button>
+        <button role="tab" data-os="linux">Linux</button>
+        <button role="tab" data-os="windows">Windows</button>
+      </div>
+      <div class="panel active" data-os="mac">
+        <p>Open the <b>Terminal</b> app, paste this command and press Enter.</p>
+        <div class="cmd px"><code>curl -fsSL https://focusoro.com/install.sh | sh</code><button class="px">Copy</button></div>
+        <p>Or with Homebrew</p>
+        <div class="cmd px"><code>brew install orocore/tap/focusoro</code><button class="px">Copy</button></div>
+      </div>
+      <div class="panel" data-os="linux">
+        <p>Open a terminal, paste this command and press Enter.</p>
+        <div class="cmd px"><code>curl -fsSL https://focusoro.com/install.sh | sh</code><button class="px">Copy</button></div>
+      </div>
+      <div class="panel" data-os="windows">
+        <p>Open <b>PowerShell</b> or Windows Terminal, paste this command and press Enter.</p>
+        <div class="cmd px ps"><code>irm https://focusoro.com/install.ps1 | iex</code><button class="px">Copy</button></div>
+        <p>Or with Scoop</p>
+        <div class="cmd px ps"><code>scoop bucket add focusoro https://github.com/orocore/focusoro; scoop install focusoro</code><button class="px">Copy</button></div>
+      </div>
+      <p class="then">Then open a new terminal and type <code>focusoro</code>. Press <kbd>h</kbd> inside for every shortcut.</p>
+    </div>
+    <p class="terminals">Looks its best in a modern terminal like Ghostty, iTerm2, WezTerm, Kitty, Alacritty, foot or Windows Terminal.</p>
+
+    <div class="window px drop">
+      <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>focusoro</span></div>
+      <!-- The video demo on large screens (the script below adds it). Phones,
+           no JavaScript or "reduce motion" get the screenshot. -->
+      <video class="demo" id="demo" muted loop playsinline preload="none" width="1062" height="1232" poster="demo/terminal.webp" hidden
+             aria-label="A recording of Focusoro in a terminal, going through a focus session, topics, tasks, stats, the log, the calendar, themes and zen mode."
+             data-webm="demo/terminal.webm" data-mp4="demo/terminal.mp4"></video>
+      <picture class="still">
+        <source media="(max-width: 640px)" srcset="screens/main-narrow.webp" width="1510" height="1064">
+        <img src="screens/main.webp" width="2232" height="1856" alt="Focusoro, a Pomodoro TUI, in a terminal with a focus session running, five topics with today's and this week's progress, tasks with deadlines and notes.">
+      </picture>
+    </div>
+    <p class="caption" id="demo-caption">A real screenshot of the app.</p>
+  </header>
+
+  <section>
+    <div class="pillars">
+      <div><img class="pixelated" src="mark.svg" alt="" width="45" height="60" style="width:45px"><h2>Focus</h2><p>Pomodoro sessions, real breaks, and a zen mode that shows only the clock.</p></div>
+      <div><img class="pixelated" src="icons/chart.svg" alt="" width="60" height="60"><h2>Track</h2><p>Each session is saved under its topic, next to your tasks, notes and important dates.</p></div>
+      <div><img class="pixelated" src="icons/sprout.svg" alt="" width="60" height="60"><h2>Grow</h2><p>Daily goals, streaks and a report that shows how far you've come.</p></div>
+    </div>
+  </section>
+
+  <section class="gallery" id="tour">
+    <div class="section-head">
+      <div class="section-label">Tour</div>
+      <h2>A closer look</h2>
+      <p>Everything happens in your terminal, with the keyboard or the mouse.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Screens">
+      <button role="tab" data-shot="report" class="active">Report</button>
+      <button role="tab" data-shot="zen">Zen mode</button>
+      <button role="tab" data-shot="break">Breaks</button>
+      <button role="tab" data-shot="calendar">Calendar</button>
+      <button role="tab" data-shot="weekly">Weekly goals</button>
+      <button role="tab" data-shot="stats">Stats</button>
+    </div>
+    <div class="shot active" data-shot="report">
+      <div class="frame px drop"><video class="demo" id="report-demo" muted loop playsinline preload="none" width="1280" height="800" poster="screens/report.webp"
+             aria-label="The Focusoro report in a browser, with the summary, goals by topic and day, topics, the hours you focus and the month's calendar."
+             data-webm="demo/report.webm" data-mp4="demo/report.mp4"></video></div>
+      <div><h3>A report of your progress</h3><p>Open a report in your browser from the app. It compares your week, month or year with the previous one, shows how your goals are going and when you focus best, and lists every session. It works offline.</p></div>
+    </div>
+    <div class="shot" data-shot="zen">
+      <div class="frame px drop"><img src="screens/zen.webp" width="1690" height="992" alt="Zen mode with a large countdown, the current topic and the pinned task." loading="lazy"></div>
+      <div><h3>Zen mode</h3><p>Only the clock, your topic and the task you're on. Nothing else on screen.</p><p class="keys">Press <kbd>z</kbd> during a session.</p></div>
+    </div>
+    <div class="shot" data-shot="break">
+      <div class="frame px drop"><img src="screens/break.webp" width="1690" height="956" alt="The break screen with its countdown and a quote by Seneca." loading="lazy"></div>
+      <div><h3>Breaks that help</h3><p>A quiet screen with a quote while you step away. You can add your own quotes, turn on short breaks to rest your eyes, or make breaks strict if you tend to skip them.</p></div>
+    </div>
+    <div class="shot" data-shot="calendar">
+      <div class="frame px drop"><img src="screens/calendar.webp" width="1546" height="1100" alt="The calendar with focus time per day, goals met, task deadlines and important dates." loading="lazy"></div>
+      <div><h3>Your month at a glance</h3><p>How much you focused each day, the days you met your goals, and your deadlines and important dates, with reminders. You can export it to Google Calendar, Apple Calendar or Outlook.</p><p class="keys">Press <kbd>v</kbd> then <kbd>c</kbd>.</p></div>
+    </div>
+    <div class="shot" data-shot="weekly">
+      <div class="frame px drop"><img src="screens/weekly.webp" width="1474" height="704" alt="Weekly goals with the focus time of each day against its goal." loading="lazy"></div>
+      <div><h3>Goals for every day</h3><p>Set a goal per topic for each weekday and see how the week is going against it.</p><p class="keys">Press <kbd>w</kbd>.</p></div>
+    </div>
+    <div class="shot" data-shot="stats">
+      <div class="frame px drop"><img src="screens/stats.webp" width="1294" height="848" alt="Stats with today, this week, streaks, sessions, total time and a heatmap of the last 26 weeks." loading="lazy"></div>
+      <div><h3>Streaks and totals</h3><p>Today, this week, your current and best streak, and a heatmap of the last six months.</p><p class="keys">Press <kbd>s</kbd>.</p></div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-head">
+      <div class="section-label">Features</div>
+      <h2>What's inside</h2>
+      <p>Easy to start with, with more to it when you need it.</p>
+    </div>
+    <div class="features">
+      <div class="feature px"><img class="pixelated" src="icons/timer.svg" alt="" width="36" height="36"><h3>Pomodoro timer</h3><p>Focus sessions, short and long breaks, and auto-start. If the terminal closes mid-session, the time you worked is still saved.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/target.svg" alt="" width="36" height="36"><h3>Topics and daily goals</h3><p>Split your time into work, projects, hobbies or studies, each with its own goal for every weekday.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/check.svg" alt="" width="36" height="36"><h3>Tasks and notes</h3><p>Pin the task you're on, set deadlines with shortcuts like <i>fri</i> or <i>+3</i>, and keep notes linked to topics.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/calendar.svg" alt="" width="36" height="36"><h3>Calendar and reminders</h3><p>Important dates with reminders, deadlines and your focus per day, with export to your calendar app.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/moon.svg" alt="" width="36" height="36"><h3>Breaks</h3><p>A calm break screen with quotes, optional micro breaks to rest your eyes, and strict breaks if you need them.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/chart.svg" alt="" width="36" height="36"><h3>Reports and stats</h3><p>Streaks, heatmaps and a browser report with every session. Export your sessions to CSV anytime.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/palette.svg" alt="" width="36" height="36"><h3>Themes and zen mode</h3><p>Tokyo Night, Catppuccin, Gruvbox, Nord, your terminal's colors or any theme you add, plus focus dimming and zen mode.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/lock.svg" alt="" width="36" height="36"><h3>Your data stays yours</h3><p>No account, no cloud, no tracking. Everything is saved as plain files on your computer.</p></div>
+      <div class="feature px"><img class="pixelated" src="icons/bolt.svg" alt="" width="36" height="36"><h3>Light and fast</h3><p>One native C++ program of about 5 MB that starts instantly and uses under 10 MB of memory. No Electron, nothing else to install. macOS, Linux and Windows, Intel and ARM.</p></div>
+    </div>
+  </section>
+
+  <section id="themes">
+    <div class="section-head">
+      <div class="section-label">Themes</div>
+      <h2>Make it yours</h2>
+      <p>Five built-in themes, your terminal's own colors, or any of the hundreds of themes made for Ghostty, Kitty, Alacritty or Windows Terminal. Choose “Add your own…”, drop the file in the folder that opens, and pick it.</p>
+    </div>
+    <div class="themes">
+      <figure class="theme"><div class="frame px"><img src="screens/tokyo-night.webp" width="1116" height="928" alt="Focusoro with the Tokyo Night theme." loading="lazy"></div><figcaption>Tokyo Night</figcaption></figure>
+      <figure class="theme"><div class="frame px"><img src="screens/latte.webp" width="1116" height="928" alt="Focusoro with the Catppuccin Latte theme." loading="lazy"></div><figcaption>Catppuccin Latte</figcaption></figure>
+      <figure class="theme"><div class="frame px"><img src="screens/gruvbox.webp" width="1116" height="928" alt="Focusoro with the Gruvbox Dark theme." loading="lazy"></div><figcaption>Gruvbox Dark</figcaption></figure>
+      <figure class="theme"><div class="frame px"><img src="screens/dracula.webp" width="1116" height="928" alt="Focusoro with the Dracula theme, added from a theme file." loading="lazy"></div><figcaption>Dracula · added from a file</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="cta px drop">
+      <img class="pixelated" src="mark.svg" alt="" width="54" height="72">
+      <h2>Ready to focus?</h2>
+      <p>Free, and no account needed.</p>
+      <div class="actions">
+        <a class="btn px" href="#install">Install Focusoro</a>
+        <a class="btn ghost px" href="https://github.com/orocore/focusoro/releases/latest">Download a release</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="left"><img class="pixelated" src="mark.svg" alt=""><span>© 2026 Focusoro · Free to use · Built with <a href="https://github.com/ArthurSonzogni/FTXUI">FTXUI</a> and <a href="https://github.com/nlohmann/json">nlohmann/json</a></span></div>
+    <nav>
+      <a href="https://github.com/orocore/focusoro#readme">Docs</a>
+      <a href="https://github.com/orocore/focusoro/releases">Releases</a>
+      <a href="https://github.com/orocore/focusoro/issues">Report a problem</a>
+      <a href="mailto:info@focusoro.com">Contact</a>
+      <a href="https://github.com/orocore/focusoro/blob/main/LICENSE">License</a>
+    </nav>
+  </footer>
+</div>
+<script>
+(function () {
+  function tabs(group, attr) {
+    var buttons = document.querySelectorAll(group + " .tabs button");
+    function show(value) {
+      buttons.forEach(function (b) {
+        var on = b.dataset[attr] === value;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on);
+      });
+      document.querySelectorAll(group + " [data-" + attr + "]:not(button)").forEach(function (p) {
+        p.classList.toggle("active", p.dataset[attr] === value);
+      });
+    }
+    buttons.forEach(function (b) { b.addEventListener("click", function () { show(b.dataset[attr]); }); });
+    return show;
+  }
+  var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+  var os = /Win/i.test(platform) ? "windows" : /Mac|iPhone|iPad/i.test(platform) ? "mac" : "linux";
+  tabs(".install", "os")(os);
+  tabs(".gallery", "shot");
+
+  // Demo videos. On large screens without "reduce motion" they load and play
+  // on their own (muted, in a loop). Otherwise they show their poster and
+  // can be played by hand.
+  var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var small = window.matchMedia("(max-width: 640px)").matches;
+  function load(video) {
+    if (video.dataset.loaded) return;
+    video.dataset.loaded = "1";
+    ["webm", "mp4"].forEach(function (type) {
+      var source = document.createElement("source");
+      source.src = video.dataset[type];
+      source.type = "video/" + type;
+      video.appendChild(source);
+    });
+    video.load();
+  }
+  function play(video) {
+    load(video);
+    if (still) { video.controls = true; return; }
+    var p = video.play();
+    if (p && p.catch) p.catch(function () { video.controls = true; });
+  }
+  var demo = document.getElementById("demo");
+  if (demo && !small) {
+    demo.hidden = false;
+    demo.parentNode.classList.add("playing");
+    document.querySelector(".window .still").style.display = "none";
+    document.getElementById("demo-caption").textContent = "Recorded in a real terminal.";
+    play(demo);
+  }
+  // The report video (the tour's first tab) plays while the section is in
+  // view and its tab is open, and pauses otherwise.
+  var report = document.getElementById("report-demo");
+  var tourVisible = false;
+  function reportShown() {
+    var tab = document.querySelector('.gallery .tabs button[data-shot="report"]');
+    return tab && tab.classList.contains("active");
+  }
+  function syncReport() {
+    if (!report) return;
+    if (tourVisible && reportShown()) play(report);
+    else report.pause();
+  }
+  document.querySelectorAll(".gallery .tabs button").forEach(function (b) {
+    b.addEventListener("click", syncReport);
+  });
+  if ("IntersectionObserver" in window && report) {
+    new IntersectionObserver(function (entries) {
+      tourVisible = entries[0].isIntersecting;
+      syncReport();
+    }, { threshold: 0.25 }).observe(report);
+  } else {
+    tourVisible = true;
+    syncReport();
+  }
+  document.querySelectorAll(".cmd button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = b.parentNode.querySelector("code").textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        b.textContent = "Copied";
+        setTimeout(function () { b.textContent = "Copy"; }, 1500);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
