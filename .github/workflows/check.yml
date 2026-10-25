@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Tag or commit of the source to build (e.g. v1.0.0)"
+        description: "Tag or commit of the source to build (e.g. v1.0.1)"
         required: true
-        default: "v1.0.0"
+        default: "v1.0.1"
       os:
         description: "Where to build"
         type: choice

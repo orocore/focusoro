@@ -73,6 +73,20 @@ at [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes).
   `~/Library/Application Support/focusoro` on macOS and `%APPDATA%\focusoro`
   on Windows. `focusoro --help` shows the paths.
 
+## Update
+
+Run the install command again: it replaces the app with the latest version
+and keeps your data. Close Focusoro first.
+
+| Installed with | Update with |
+|---|---|
+| The macOS / Linux command | `curl -fsSL https://focusoro.com/install.sh \| sh` |
+| The Windows command | `irm https://focusoro.com/install.ps1 \| iex` |
+| Homebrew | `brew upgrade focusoro` |
+| Scoop | `scoop update focusoro` |
+
+`focusoro --version` shows the version you have.
+
 ## Uninstall
 
 ```sh

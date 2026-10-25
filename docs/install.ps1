@@ -18,6 +18,9 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is much faster without it
 
 $Repo = 'orocore/focusoro'
+# The processor itself, from the registry: an x64 PowerShell emulated on ARM
+# sees AMD64 in $env:PROCESSOR_ARCHITECTURE.
+$Arch = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment').PROCESSOR_ARCHITECTURE
 $Asset = 'focusoro-windows-x86_64.exe'
 $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\Focusoro'
 $Exe = Join-Path $InstallDir 'focusoro.exe'
@@ -51,10 +54,16 @@ try {
   Write-Host 'Downloading Focusoro...'
   # TLS 1.2 for Windows PowerShell 5.1 on older systems.
   [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor 3072
-  Invoke-WebRequest -UseBasicParsing -Uri "$Base/$Asset" -OutFile (Join-Path $Tmp $Asset)
   Invoke-WebRequest -UseBasicParsing -Uri "$Base/sha256sums.txt" -OutFile (Join-Path $Tmp 'sha256sums.txt')
+  $sums = Get-Content (Join-Path $Tmp 'sha256sums.txt')
+  # Native build on ARM when the release has one (1.0.0 only had x86_64,
+  # which Windows 11 on ARM runs emulated).
+  if ($Arch -eq 'ARM64' -and ($sums -match '\sfocusoro-windows-arm64\.exe$')) {
+    $Asset = 'focusoro-windows-arm64.exe'
+  }
+  Invoke-WebRequest -UseBasicParsing -Uri "$Base/$Asset" -OutFile (Join-Path $Tmp $Asset)
 
-  $line = Get-Content (Join-Path $Tmp 'sha256sums.txt') | Where-Object { $_ -match "\s\*?$([regex]::Escape($Asset))$" }
+  $line = $sums | Where-Object { $_ -match "\s\*?$([regex]::Escape($Asset))$" }
   if (-not $line) { throw "No checksum for $Asset in this release." }
   $expected = ($line -split '\s+')[0].ToLower()
   $actual = (Get-FileHash -Algorithm SHA256 (Join-Path $Tmp $Asset)).Hash.ToLower()

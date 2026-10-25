@@ -51,6 +51,9 @@ jobs:
           - os: windows-latest
             raw_path: build/Release/focusoro.exe
             asset_name: focusoro-windows-x86_64.exe
+          - os: windows-11-arm
+            raw_path: build/Release/focusoro.exe
+            asset_name: focusoro-windows-arm64.exe
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out the source (private repository)
@@ -165,7 +168,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04, macos-latest, windows-latest]
+        os: [ubuntu-22.04, macos-latest, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -199,6 +202,14 @@ jobs:
           FOCUSORO_DOWNLOAD_BASE: http://127.0.0.1:8765
         run: |
           ./docs/install.ps1
+          # Each Windows runner installs its own build (x86_64 or arm64).
+          $arch = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment').PROCESSOR_ARCHITECTURE
+          $machine = (Get-Item "$env:LOCALAPPDATA\Programs\Focusoro\focusoro.exe").OpenRead()
+          $bytes = New-Object byte[] 4096; [void]$machine.Read($bytes, 0, 4096); $machine.Close()
+          $pe = [BitConverter]::ToInt32($bytes, 0x3c)
+          $type = [BitConverter]::ToUInt16($bytes, $pe + 4)
+          $want = if ($arch -eq 'ARM64') { 0xAA64 } else { 0x8664 }
+          if ($type -ne $want) { throw ("installed the wrong build: machine 0x{0:X}" -f $type) }
           $out = & "$env:LOCALAPPDATA\Programs\Focusoro\focusoro.exe" --version
           if ($out -notmatch [regex]::Escape($env:VERSION)) { throw "unexpected version: $out" }
           ./docs/install.ps1 -Uninstall
@@ -253,7 +264,7 @@ jobs:
       - name: Read the checksums
         id: sums
         run: |
-          for name in linux-x86_64 linux-arm64 macos-x86_64 macos-arm64 windows-x86_64.exe; do
+          for name in linux-x86_64 linux-arm64 macos-x86_64 macos-arm64 windows-x86_64.exe windows-arm64.exe; do
             key=$(echo "$name" | tr '.-' '__')
             echo "$key=$(grep " focusoro-$name\$" assets/sha256sums.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           done
@@ -261,6 +272,7 @@ jobs:
       - name: Scoop manifest (this repository)
         env:
           WIN_SHA: ${{ steps.sums.outputs.windows_x86_64_exe }}
+          WIN_ARM_SHA: ${{ steps.sums.outputs.windows_arm64_exe }}
         run: |
           python3 - <<'EOF'
           import json, os
@@ -272,6 +284,13 @@ jobs:
               f"https://github.com/orocore/focusoro/releases/download/v{version}/"
               "focusoro-windows-x86_64.exe#/focusoro.exe")
           manifest["architecture"]["64bit"]["hash"] = os.environ["WIN_SHA"]
+          manifest["architecture"]["arm64"] = {
+              "url": f"https://github.com/orocore/focusoro/releases/download/v{version}/"
+                     "focusoro-windows-arm64.exe#/focusoro.exe",
+              "hash": os.environ["WIN_ARM_SHA"]}
+          manifest["autoupdate"]["architecture"]["arm64"] = {
+              "url": "https://github.com/orocore/focusoro/releases/download/v$version/"
+                     "focusoro-windows-arm64.exe#/focusoro.exe"}
           json.dump(manifest, open(path, "w"), indent=4)
           open(path, "a").write("\n")
           EOF
