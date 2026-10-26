@@ -100,6 +100,14 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -.025em; }
 
 /* Navigation */
 nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; gap: 16px; }
+/* The top bar stays visible while scrolling, so its links are there when
+   they are needed. The background reaches both edges of the screen. */
+nav.top { position: sticky; top: 0; z-index: 10; padding: 14px 0; }
+nav.top::before {
+  content: ""; position: absolute; inset: 0 -100vw; z-index: -1;
+  background: rgba(18, 19, 27, .9); border-bottom: 2px solid var(--line);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
 .brand img { display: block; height: 44px; width: auto; }
 nav .links { display: flex; align-items: center; gap: 26px; }
 nav .links a { color: var(--muted); text-decoration: none; font-size: 14.5px; }
@@ -140,6 +148,8 @@ nav .links a.btn { font-size: 14px; padding: 6px 16px; color: #191307; }
 
 /* Install */
 .install { background: var(--surface); padding: 20px; max-width: 760px; margin: 0 auto; text-align: left; --b: var(--line); }
+/* Install jumps to this block, below the top bar like the section titles. */
+.install { scroll-margin-top: 100px; }
 .tabs { display: flex; gap: 10px; margin: 0 0 14px; flex-wrap: wrap; }
 .tabs button {
   border: 0; background: transparent; color: var(--muted); font-size: 14.5px; font-weight: 600;
@@ -233,11 +243,11 @@ footer nav { padding: 0; display: flex; gap: 20px; }
   nav .links a:not(.btn) { display: none; }
   .hero { padding-top: 40px; }
   .eyebrow { flex-wrap: wrap; justify-content: center; }
-  .install { padding: 14px; }
+  .install { padding: 14px; scroll-margin-top: 86px; }
   .cmd code { font-size: 13px; }
   .window { margin-top: 40px; }
   .window .bar span { display: none; }
-  section { padding-top: 76px; }
+  section { padding-top: 76px; scroll-margin-top: 24px; }
   .pillars, .features, .themes { grid-template-columns: 1fr; }
   .gallery .tabs { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 22px; padding: 0 16px 6px; scrollbar-width: none; }
   .gallery .tabs button { flex: none; }
@@ -246,8 +256,8 @@ footer nav { padding: 0; display: flex; gap: 20px; }
 </head>
 <body>
 <div class="wrap">
-  <nav>
-    <a class="brand" href="#"><img src="logo.svg" alt="Focusoro" width="198" height="44"></a>
+  <nav class="top">
+    <a class="brand" href="#top" aria-label="Focusoro, back to the top"><img src="logo.svg" alt="Focusoro" width="198" height="44"></a>
     <div class="links">
       <a href="#features">Features</a>
       <a href="#tour">Tour</a>
@@ -256,12 +266,12 @@ footer nav { padding: 0; display: flex; gap: 20px; }
     </div>
   </nav>
 
-  <header class="hero" id="install">
+  <header class="hero">
     <div class="eyebrow"><span class="tag px">v1.0.1</span> Free terminal app (TUI) for macOS, Linux and Windows</div>
     <h1>Where focus<br><span>becomes progress.</span></h1>
     <p class="lead">A Pomodoro timer for your terminal that keeps track of what you work on, with daily goals, tasks, notes and a calendar next to the clock.</p>
 
-    <div class="install px drop">
+    <div class="install px drop" id="install">
       <div class="tabs" role="tablist" aria-label="Your system">
         <button role="tab" data-os="mac" class="active">macOS</button>
         <button role="tab" data-os="linux">Linux</button>
@@ -492,6 +502,16 @@ footer nav { padding: 0; display: flex; gap: 20px; }
         b.textContent = "Copied";
         setTimeout(function () { b.textContent = "Copy"; }, 1500);
       });
+    });
+  });
+  // Links inside the page scroll without adding to the history, so Back
+  // leaves the site instead of stepping through the sections.
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      var target = document.getElementById(a.getAttribute("href").slice(1));
+      e.preventDefault();
+      if (target) target.scrollIntoView();
+      else window.scrollTo(0, 0);
     });
   });
 })();
