@@ -1,5 +1,5 @@
 {
-    "version": "1.0.1",
+    "version": "1.1.0",
     "description": "Pomodoro sessions, focus tracking and goals in your terminal",
     "homepage": "https://focusoro.com",
     "license": {
@@ -8,12 +8,12 @@
     },
     "architecture": {
         "64bit": {
-            "url": "https://github.com/orocore/focusoro/releases/download/v1.0.1/focusoro-windows-x86_64.exe#/focusoro.exe",
-            "hash": "2ec2e405d68a5239d1d3a26c07f711965d20cdea459ffa6ee7adb06d5c31026d"
+            "url": "https://github.com/orocore/focusoro/releases/download/v1.1.0/focusoro-windows-x86_64.exe#/focusoro.exe",
+            "hash": "55fd8530ae3a60900d4c6cc5aadb942f060d643490da9d81222f3eaee7e0e7e0"
         },
         "arm64": {
-            "url": "https://github.com/orocore/focusoro/releases/download/v1.0.1/focusoro-windows-arm64.exe#/focusoro.exe",
-            "hash": "e2be2a21b4e6b4f90dd81ea89b3394d4348fcfbffeee663dc12c78538ff00165"
+            "url": "https://github.com/orocore/focusoro/releases/download/v1.1.0/focusoro-windows-arm64.exe#/focusoro.exe",
+            "hash": "bbd7529dd099d2f23058dcccb82b395fc19f71e60dc85a098c1adc0f2c6ef960"
         }
     },
     "bin": "focusoro.exe",
