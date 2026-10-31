@@ -3,10 +3,14 @@
 # Focusoro
 
 **Where focus becomes progress.** Focusoro is a free Pomodoro timer for your
-terminal that keeps track of what you work on, with daily goals, tasks, notes,
-a calendar and a report of your progress. There is no account and no cloud,
-so your data stays on your computer. It is one small native program of about
-5 MB that uses under 10 MB of memory, with nothing else to install.
+terminal that keeps track of what you work on. You choose how much time each
+topic gets a day, and Focusoro keeps the record of every session and of how
+close you are to today's and this week's goals. Tasks, notes, a calendar and a
+report of your progress are there when you want them. There is no account and
+no cloud of ours. Your data is plain files on your computer, or in a folder you choose to
+sync with Dropbox, iCloud Drive or another service. It is one small native
+program of about 5 MB that uses under 10 MB of memory, with nothing else to
+install.
 
 → **[focusoro.com](https://focusoro.com)**
 
@@ -58,12 +62,22 @@ Profiles → Text helps.
 
 ## Your own themes
 
-Press `v` then `t` to pick a theme. To add another one, choose **+ Add your
+Press `i` then `t` to pick a theme. To add another one, choose **+ Add your
 own…** at the end of the list. It opens the `themes` folder (`focusoro --help`
 shows where it is). Put a terminal theme file there and open the picker again
 to find it in the list. Theme files for Ghostty, Kitty, Alacritty, Windows
 Terminal and Xresources work as they are, and you can find hundreds of them
 at [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes).
+
+## On all your computers
+
+Press `i` then `y` and choose a folder that Dropbox, iCloud Drive, OneDrive,
+Google Drive, Nextcloud or Syncthing keeps in sync. Every computer that chooses
+the same folder shares your topics, history, tasks, notes, dates, quotes and
+themes. Your settings stay on each computer. If both this computer and the
+folder already have data, you choose which one to keep, and the other is saved
+in a backup folder. Choosing Stop syncing in the same window brings the data
+back to this computer.
 
 ## Where are my files?
 
@@ -71,11 +85,12 @@ at [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes).
   to `Documents/Focusoro`.
 - **Your data** is in `~/.local/share/focusoro` on Linux,
   `~/Library/Application Support/focusoro` on macOS and `%APPDATA%\focusoro`
-  on Windows. `focusoro --help` shows the paths.
+  on Windows. With Sync on, it is in the `Focusoro` folder inside the folder
+  you chose. `focusoro --help` shows the paths.
 
 ## Update
 
-Run the install command again: it replaces the app with the latest version
+Run the install command again. It replaces the app with the latest version
 and keeps your data. Close Focusoro first.
 
 | Installed with | Update with |
@@ -105,6 +120,8 @@ Open an [issue](https://github.com/orocore/focusoro/issues), or write to
 [info@focusoro.com](mailto:info@focusoro.com).
 
 ---
+
+Focusoro by Orocore is a terminal app for macOS, Linux and Windows.
 
 This repository publishes Focusoro's releases, installers, the website
 (`docs/`, served at focusoro.com) and the Scoop bucket (`bucket/`). Focusoro is

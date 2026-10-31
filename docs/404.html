@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found · Focusoro</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#12131b">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/mark.svg">
+<!-- GitHub Pages serves this page for any missing address, so every path
+     here starts at the site's root. -->
+<style>
+@font-face {
+  font-family: "JetBrains Mono"; src: url(/fonts/JetBrainsMono.woff2) format("woff2");
+  font-weight: 100 800; font-display: swap;
+}
+:root {
+  --bg: #12131b; --surface: #1b1d29; --line: #2e3248; --text: #e6e9f5; --muted: #9ba1bd;
+  --gold: #f2c14e; --px: 3px;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  display: flex; align-items: center; justify-content: center; padding: 24px 16px;
+  background: var(--bg); color: var(--text); text-align: center;
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 440px; }
+.mark { width: 54px; height: 72px; image-rendering: pixelated; display: block; margin: 0 auto 22px; }
+.code { font: 700 15px var(--mono); color: var(--gold); letter-spacing: .16em; }
+h1 { font-size: clamp(30px, 7vw, 40px); line-height: 1.15; letter-spacing: -.025em; margin: 8px 0 12px; }
+p { color: var(--muted); font-size: 18px; margin: 0 0 30px; }
+.btn {
+  display: inline-block; font: 700 15px var(--mono); text-decoration: none;
+  padding: 9px 20px; color: #191307; background: var(--gold);
+  box-shadow: 0 calc(-1 * var(--px)) 0 0 #7a5810, 0 var(--px) 0 0 #7a5810,
+              calc(-1 * var(--px)) 0 0 0 #7a5810, var(--px) 0 0 0 #7a5810;
+}
+.btn:hover { background: #f6cd68; }
+</style>
+</head>
+<body>
+<main>
+  <img class="mark" src="/mark.svg" alt="" width="54" height="72">
+  <div class="code">404</div>
+  <h1>This page doesn't exist</h1>
+  <p>The link may be old or mistyped. Everything about Focusoro is on the home page.</p>
+  <a class="btn" href="/">Go to focusoro.com</a>
+</main>
+</body>
+</html>
